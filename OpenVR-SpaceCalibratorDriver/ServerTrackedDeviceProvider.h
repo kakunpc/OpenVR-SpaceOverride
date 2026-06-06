@@ -3,6 +3,7 @@
 #include "IPCServer.h"
 
 #include <openvr_driver.h>
+#include <chrono>
 
 class ServerTrackedDeviceProvider : public vr::IServerTrackedDeviceProvider
 {
@@ -36,6 +37,7 @@ public:
 
 	ServerTrackedDeviceProvider() : server(this) { }
 	void SetDeviceTransform(const protocol::SetDeviceTransform &newTransform);
+	void SetHmdTracker(const protocol::SetHmdTracker &cmd);
 	bool HandleDevicePoseUpdated(uint32_t openVRID, vr::DriverPose_t &pose);
 
 private:
@@ -50,4 +52,15 @@ private:
 	};
 
 	DeviceTransform transforms[vr::k_unMaxTrackedDeviceCount];
+
+	struct HmdTracker
+	{
+		bool enabled = false;
+		uint32_t hmdID = vr::k_unTrackedDeviceIndex_Hmd;
+		uint32_t trackerID = vr::k_unTrackedDeviceIndexInvalid;
+		vr::HmdQuaternion_t offsetRotation = { 1, 0, 0, 0 };
+		vr::HmdVector3d_t offsetTranslation = { 0, 0, 0 };
+		vr::HmdQuaternion_t calibrationRotation = { 1, 0, 0, 0 };
+		vr::HmdVector3d_t calibrationTranslation = { 0, 0, 0 };
+	} hmdTracker;
 };

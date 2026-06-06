@@ -1,3 +1,5 @@
+#define WIN32_LEAN_AND_MEAN
+
 #include "stdafx.h"
 #include "Calibration.h"
 #include "Configuration.h"
@@ -6,6 +8,8 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <algorithm>
+#include <cmath>
 
 #include <Eigen/Dense>
 
@@ -74,6 +78,76 @@ Eigen::Vector3d AxisFromRotationMatrix3(Eigen::Matrix3d rot)
 double AngleFromRotationMatrix3(Eigen::Matrix3d rot)
 {
 	return acos((rot(0,0) + rot(1,1) + rot(2,2) - 1.0) / 2.0);
+}
+
+struct DetectionState
+{
+	std::vector<uint32_t> candidates;
+	std::vector<std::vector<double>> candidateSpeeds;
+	std::vector<double> hmdSpeeds;
+	std::vector<Eigen::Matrix3d> prevRot; // [0] = HMD, [i+1] = candidates[i]
+	bool havePrev = false;
+	double prevTime = 0;
+
+	void Clear()
+	{
+		candidates.clear();
+		candidateSpeeds.clear();
+		hmdSpeeds.clear();
+		prevRot.clear();
+		havePrev = false;
+		prevTime = 0;
+	}
+};
+
+static DetectionState Detection;
+
+static std::string GetDeviceSerial(uint32_t id)
+{
+	char serial[vr::k_unMaxPropertyStringSize] = {};
+	vr::VRSystem()->GetStringTrackedDeviceProperty(id, vr::Prop_SerialNumber_String, serial, vr::k_unMaxPropertyStringSize);
+	return std::string(serial);
+}
+
+static std::string GetDeviceTrackingSystem(uint32_t id)
+{
+	char system[vr::k_unMaxPropertyStringSize] = {};
+	vr::VRSystem()->GetStringTrackedDeviceProperty(id, vr::Prop_TrackingSystemName_String, system, vr::k_unMaxPropertyStringSize);
+	return std::string(system);
+}
+
+static double AngularSpeedBetween(const Eigen::Matrix3d &cur, const Eigen::Matrix3d &prev, double dt)
+{
+	Eigen::Matrix3d delta = cur * prev.transpose();
+	double c = (delta(0,0) + delta(1,1) + delta(2,2) - 1.0) / 2.0;
+	if (c > 1.0) c = 1.0;
+	if (c < -1.0) c = -1.0;
+	return acos(c) / dt;
+}
+
+static double PearsonCorrelation(const std::vector<double> &a, const std::vector<double> &b)
+{
+	if (a.size() != b.size() || a.empty())
+		return 0.0;
+
+	double meanA = 0, meanB = 0;
+	for (size_t i = 0; i < a.size(); i++) { meanA += a[i]; meanB += b[i]; }
+	meanA /= a.size();
+	meanB /= b.size();
+
+	double cov = 0, varA = 0, varB = 0;
+	for (size_t i = 0; i < a.size(); i++)
+	{
+		double da = a[i] - meanA, db = b[i] - meanB;
+		cov += da * db;
+		varA += da * da;
+		varB += db * db;
+	}
+
+	if (varA < 1e-9 || varB < 1e-9)
+		return 0.0;
+
+	return cov / std::sqrt(varA * varB);
 }
 
 DSample DeltaRotationSamples(Sample s1, Sample s2)
@@ -208,7 +282,7 @@ Sample CollectSample(const CalibrationContext &ctx)
 	reference.bPoseIsValid = false;
 	target.bPoseIsValid = false;
 
-	reference = ctx.devicePoses[ctx.referenceID];
+	reference = ctx.devicePoses[0];
 	target = ctx.devicePoses[ctx.targetID];
 
 	bool ok = true;
@@ -273,6 +347,53 @@ void ResetAndDisableOffsets(uint32_t id)
 	Driver.SendBlocking(req);
 }
 
+void SendHmdTrackerCommand(uint32_t hmdID, uint32_t trackerID, bool enabled)
+{
+	protocol::Request req(protocol::RequestSetHmdTracker);
+	req.setHmdTracker.hmdID = hmdID;
+	req.setHmdTracker.trackerID = trackerID;
+	req.setHmdTracker.enabled = enabled;
+	req.setHmdTracker.offsetRotation = CalCtx.relativeRotation;
+	req.setHmdTracker.offsetTranslation = CalCtx.relativeTranslation;
+	req.setHmdTracker.calibrationRotation = VRRotationQuat(CalCtx.calibratedRotation);
+	req.setHmdTracker.calibrationTranslation = VRTranslationVec(CalCtx.calibratedTranslation);
+	Driver.SendBlocking(req);
+}
+
+void ComputeRelativeOffset(CalibrationContext &ctx)
+{
+	if (!ctx.haveOffsetSample)
+		return;
+
+	Eigen::Vector3d eulerRad = ctx.calibratedRotation * EIGEN_PI / 180.0;
+	Eigen::Matrix3d rotC =
+		(Eigen::AngleAxisd(eulerRad(0), Eigen::Vector3d::UnitZ()) *
+		 Eigen::AngleAxisd(eulerRad(1), Eigen::Vector3d::UnitY()) *
+		 Eigen::AngleAxisd(eulerRad(2), Eigen::Vector3d::UnitX())).toRotationMatrix();
+	Eigen::Vector3d transC = ctx.calibratedTranslation * 0.01;
+
+	Pose hmd(ctx.offsetRefRaw);
+	Pose tracker(ctx.offsetTargetRaw);
+
+	Eigen::Matrix3d trackerRot = rotC * tracker.rot;
+	Eigen::Vector3d trackerTrans = rotC * tracker.trans + transC;
+
+	Eigen::Matrix3d offsetRot = trackerRot.transpose() * hmd.rot;
+	Eigen::Vector3d offsetTrans = trackerRot.transpose() * (hmd.trans - trackerTrans);
+
+	Eigen::Quaterniond q(offsetRot);
+	q.normalize();
+
+	ctx.relativeRotation.w = q.w();
+	ctx.relativeRotation.x = q.x();
+	ctx.relativeRotation.y = q.y();
+	ctx.relativeRotation.z = q.z();
+	ctx.relativeTranslation.v[0] = offsetTrans.x();
+	ctx.relativeTranslation.v[1] = offsetTrans.y();
+	ctx.relativeTranslation.v[2] = offsetTrans.z();
+	ctx.validRelativeOffset = true;
+}
+
 static_assert(vr::k_unTrackedDeviceIndex_Hmd == 0, "HMD index expected to be 0");
 
 void ScanAndApplyProfile(CalibrationContext &ctx)
@@ -280,68 +401,73 @@ void ScanAndApplyProfile(CalibrationContext &ctx)
 	char buffer[vr::k_unMaxPropertyStringSize];
 	ctx.enabled = ctx.validProfile;
 
+	if (ctx.enabled)
+	{
+		ctx.targetID = vr::k_unTrackedDeviceIndexInvalid;
+		if (!ctx.trackerSerial.empty())
+		{
+			for (uint32_t id = 0; id < vr::k_unMaxTrackedDeviceCount; ++id)
+			{
+				if (vr::VRSystem()->GetTrackedDeviceClass(id) == vr::TrackedDeviceClass_Invalid)
+					continue;
+				if (GetDeviceSerial(id) == ctx.trackerSerial)
+				{
+					ctx.targetID = id;
+					break;
+				}
+			}
+		}
+	}
+
 	for (uint32_t id = 0; id < vr::k_unMaxTrackedDeviceCount; ++id)
 	{
 		auto deviceClass = vr::VRSystem()->GetTrackedDeviceClass(id);
 		if (deviceClass == vr::TrackedDeviceClass_Invalid)
 			continue;
 
-		/*if (deviceClass == vr::TrackedDeviceClass_HMD) // for debugging unexpected universe switches
-		{
-			vr::ETrackedPropertyError err = vr::TrackedProp_Success;
-			auto universeId = vr::VRSystem()->GetUint64TrackedDeviceProperty(id, vr::Prop_CurrentUniverseId_Uint64, &err);
-			printf("uid %d err %d\n", universeId, err);
-			ResetAndDisableOffsets(id);
-			continue;
-		}*/
+		// The headset is driven from the tracker, so every device keeps its raw pose;
+		// clear any space-warp offset that an older profile may have applied.
+		ResetAndDisableOffsets(id);
 
 		if (!ctx.enabled)
-		{
-			ResetAndDisableOffsets(id);
 			continue;
-		}
 
 		vr::ETrackedPropertyError err = vr::TrackedProp_Success;
 		vr::VRSystem()->GetStringTrackedDeviceProperty(id, vr::Prop_TrackingSystemName_String, buffer, vr::k_unMaxPropertyStringSize, &err);
 
 		if (err != vr::TrackedProp_Success)
-		{
-			ResetAndDisableOffsets(id);
 			continue;
-		}
 
 		std::string trackingSystem(buffer);
 
 		if (id == vr::k_unTrackedDeviceIndex_Hmd)
+			continue;
+
+		if (deviceClass == vr::TrackedDeviceClass_GenericTracker && trackingSystem == ctx.targetTrackingSystem && id == ctx.targetID)
 		{
-			//auto p = ctx.devicePoses[id].mDeviceToAbsoluteTracking.m;
-			//printf("HMD %d: %f %f %f\n", id, p[0][3], p[1][3], p[2][3]);
-
-			if (trackingSystem != ctx.referenceTrackingSystem)
-			{
-				// Currently using an HMD with a different tracking system than the calibration.
-				ctx.enabled = false;
-			}
-
-			ResetAndDisableOffsets(id);
 			continue;
 		}
 
-		if (trackingSystem != ctx.targetTrackingSystem)
-		{
-			ResetAndDisableOffsets(id);
-			continue;
+		if (trackingSystem == ctx.targetTrackingSystem) {
+			protocol::Request req(protocol::RequestSetDeviceTransform);
+			req.setDeviceTransform = {
+				id,
+				true,
+				VRTranslationVec(ctx.calibratedTranslation),
+				VRRotationQuat(ctx.calibratedRotation),
+				ctx.calibratedScale
+			};
+			Driver.SendBlocking(req);
 		}
+	}
 
-		protocol::Request req(protocol::RequestSetDeviceTransform);
-		req.setDeviceTransform = {
-			id,
-			true,
-			VRTranslationVec(ctx.calibratedTranslation),
-			VRRotationQuat(ctx.calibratedRotation),
-			ctx.calibratedScale
-		};
-		Driver.SendBlocking(req);
+	if (ctx.enabled && ctx.validRelativeOffset && ctx.targetID != vr::k_unTrackedDeviceIndexInvalid)
+	{
+		SendHmdTrackerCommand(vr::k_unTrackedDeviceIndex_Hmd, ctx.targetID, true);
+	}
+	else
+	{
+		SendHmdTrackerCommand(vr::k_unTrackedDeviceIndex_Hmd, vr::k_unTrackedDeviceIndexInvalid, false);
 	}
 
 	if (ctx.enabled && ctx.chaperone.valid && ctx.chaperone.autoApply)
@@ -358,11 +484,32 @@ void ScanAndApplyProfile(CalibrationContext &ctx)
 	}
 }
 
+static void BeginRotationPhase(CalibrationContext &ctx, uint32_t targetID)
+{
+	ctx.targetID = targetID;
+	ctx.targetTrackingSystem = GetDeviceTrackingSystem(targetID);
+	ctx.hmdSerial = GetDeviceSerial(vr::k_unTrackedDeviceIndex_Hmd);
+	ctx.trackerSerial = GetDeviceSerial(targetID);
+
+	char buf[256];
+	snprintf(buf, sizeof buf, "Using headset tracker: %s (id %d)\n", ctx.trackerSerial.c_str(), targetID);
+	ctx.Log(buf);
+
+	ResetAndDisableOffsets(targetID);
+	ctx.haveOffsetSample = false;
+	SendHmdTrackerCommand(vr::k_unTrackedDeviceIndex_Hmd, vr::k_unTrackedDeviceIndexInvalid, false);
+
+	ctx.state = CalibrationState::Rotation;
+	ctx.wantedUpdateInterval = 0.0;
+	ctx.Log("Starting calibration...\n");
+}
+
 void StartCalibration()
 {
 	CalCtx.state = CalibrationState::Begin;
 	CalCtx.wantedUpdateInterval = 0.0;
 	CalCtx.messages.clear();
+	Detection.Clear();
 }
 
 void CalibrationTick(double time)
@@ -403,48 +550,119 @@ void CalibrationTick(double time)
 
 	if (ctx.state == CalibrationState::Begin)
 	{
-		bool ok = true;
+		SendHmdTrackerCommand(vr::k_unTrackedDeviceIndex_Hmd, vr::k_unTrackedDeviceIndexInvalid, false);
 
-		char referenceSerial[256], targetSerial[256];
-		vr::VRSystem()->GetStringTrackedDeviceProperty(ctx.referenceID, vr::Prop_SerialNumber_String, referenceSerial, 256);
-		vr::VRSystem()->GetStringTrackedDeviceProperty(ctx.targetID, vr::Prop_SerialNumber_String, targetSerial, 256);
-
-		char buf[256];
-		snprintf(buf, sizeof buf, "Reference device ID: %d, serial: %s\n", ctx.referenceID, referenceSerial);
-		CalCtx.Log(buf);
-		snprintf(buf, sizeof buf, "Target device ID: %d, serial %s\n", ctx.targetID, targetSerial);
-		CalCtx.Log(buf);
-
-		if (ctx.referenceID == -1)
-		{
-			CalCtx.Log("Missing reference device\n"); ok = false;
-		}
-		else if (!ctx.devicePoses[ctx.referenceID].bPoseIsValid)
-		{
-			CalCtx.Log("Reference device is not tracking\n"); ok = false;
-		}
-
-		if (ctx.targetID == -1)
-		{
-			CalCtx.Log("Missing target device\n"); ok = false;
-		}
-		else if (!ctx.devicePoses[ctx.targetID].bPoseIsValid)
-		{
-			CalCtx.Log("Target device is not tracking\n"); ok = false;
-		}
-
-		if (!ok)
+		if (vr::VRSystem()->GetTrackedDeviceClass(vr::k_unTrackedDeviceIndex_Hmd) != vr::TrackedDeviceClass_HMD ||
+			!ctx.devicePoses[vr::k_unTrackedDeviceIndex_Hmd].bPoseIsValid)
 		{
 			ctx.state = CalibrationState::None;
-			CalCtx.Log("Aborting calibration!\n");
+			CalCtx.Log("No tracking HMD found, aborting calibration!\n");
 			return;
 		}
 
-		ResetAndDisableOffsets(ctx.targetID);
-		ctx.state = CalibrationState::Rotation;
-		ctx.wantedUpdateInterval = 0.0;
+		std::string hmdSystem = GetDeviceTrackingSystem(vr::k_unTrackedDeviceIndex_Hmd);
 
-		CalCtx.Log("Starting calibration...\n");
+		Detection.Clear();
+		for (uint32_t id = 0; id < vr::k_unMaxTrackedDeviceCount; ++id)
+		{
+			if (vr::VRSystem()->GetTrackedDeviceClass(id) != vr::TrackedDeviceClass_GenericTracker)
+				continue;
+			if (!ctx.devicePoses[id].bPoseIsValid)
+				continue;
+
+			Detection.candidates.push_back(id);
+		}
+
+		if (Detection.candidates.empty())
+		{
+			ctx.state = CalibrationState::None;
+			CalCtx.Log("No trackers from a different tracking system detected, aborting!\n");
+			return;
+		}
+
+		if (Detection.candidates.size() == 1)
+		{
+			ctx.targetID = Detection.candidates[0];
+			BeginRotationPhase(ctx, Detection.candidates[0]);
+			return;
+		}
+
+		Detection.candidateSpeeds.resize(Detection.candidates.size());
+		CalCtx.Log("Move your head around to identify the headset tracker...\n");
+		ctx.state = CalibrationState::Detect;
+		ctx.wantedUpdateInterval = 0.0;
+		return;
+	}
+
+	if (ctx.state == CalibrationState::Detect)
+	{
+		if (!ctx.devicePoses[vr::k_unTrackedDeviceIndex_Hmd].bPoseIsValid)
+			return;
+
+		Eigen::Matrix3d hmdRot = Pose(ctx.devicePoses[vr::k_unTrackedDeviceIndex_Hmd].mDeviceToAbsoluteTracking).rot;
+
+		std::vector<Eigen::Matrix3d> curRot(Detection.candidates.size());
+		for (size_t i = 0; i < Detection.candidates.size(); i++)
+			curRot[i] = Pose(ctx.devicePoses[Detection.candidates[i]].mDeviceToAbsoluteTracking).rot;
+
+		double dt = time - Detection.prevTime;
+		if (Detection.havePrev && dt > 1e-4)
+		{
+			Detection.hmdSpeeds.push_back(AngularSpeedBetween(hmdRot, Detection.prevRot[0], dt));
+			for (size_t i = 0; i < Detection.candidates.size(); i++)
+				Detection.candidateSpeeds[i].push_back(AngularSpeedBetween(curRot[i], Detection.prevRot[i + 1], dt));
+
+			CalCtx.Progress((int) Detection.hmdSpeeds.size(), 40);
+		}
+
+		Detection.prevRot.assign(1, hmdRot);
+		Detection.prevRot.insert(Detection.prevRot.end(), curRot.begin(), curRot.end());
+		Detection.prevTime = time;
+		Detection.havePrev = true;
+
+		if ((int) Detection.hmdSpeeds.size() < 40)
+			return;
+
+		double hmdPeak = 0;
+		for (double s : Detection.hmdSpeeds)
+			hmdPeak = max(hmdPeak, s);
+
+		if (hmdPeak < 0.5)
+		{
+			Detection.Clear();
+			ctx.state = CalibrationState::None;
+			CalCtx.Log("Didn't detect enough head movement, aborting! Try again and move your head more.\n");
+			return;
+		}
+
+		double bestCorr = -2, secondCorr = -2;
+		int bestIdx = -1;
+		for (size_t i = 0; i < Detection.candidates.size(); i++)
+		{
+			double corr = PearsonCorrelation(Detection.hmdSpeeds, Detection.candidateSpeeds[i]);
+			if (corr > bestCorr)
+			{
+				secondCorr = bestCorr;
+				bestCorr = corr;
+				bestIdx = (int) i;
+			}
+			else if (corr > secondCorr)
+			{
+				secondCorr = corr;
+			}
+		}
+
+		if (bestIdx == -1 || bestCorr < 0.7 || (bestCorr - secondCorr) < 0.1)
+		{
+			Detection.Clear();
+			ctx.state = CalibrationState::None;
+			CalCtx.Log("Couldn't clearly identify the headset tracker, aborting! Make sure only the headset tracker moves with your head, then try again.\n");
+			return;
+		}
+
+		uint32_t targetID = Detection.candidates[bestIdx];
+		Detection.Clear();
+		BeginRotationPhase(ctx, targetID);
 		return;
 	}
 
@@ -464,6 +682,10 @@ void CalibrationTick(double time)
 		CalCtx.Log("\n");
 		if (ctx.state == CalibrationState::Rotation)
 		{
+			ctx.offsetRefRaw = ctx.devicePoses[0].mDeviceToAbsoluteTracking;
+			ctx.offsetTargetRaw = ctx.devicePoses[ctx.targetID].mDeviceToAbsoluteTracking;
+			ctx.haveOffsetSample = true;
+
 			ctx.calibratedRotation = CalibrateRotation(samples);
 
 			auto vrRotQuat = VRRotationQuat(ctx.calibratedRotation);
@@ -483,6 +705,8 @@ void CalibrationTick(double time)
 			protocol::Request req(protocol::RequestSetDeviceTransform);
 			req.setDeviceTransform = { ctx.targetID, true, vrTrans };
 			Driver.SendBlocking(req);
+
+			ComputeRelativeOffset(ctx);
 
 			ctx.validProfile = true;
 			SaveProfile(ctx);

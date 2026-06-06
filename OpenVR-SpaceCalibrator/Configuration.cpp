@@ -45,8 +45,12 @@ static void ParseProfile(CalibrationContext &ctx, std::istream &stream)
 
 	auto obj = arr[0].get<picojson::object>();
 
-	ctx.referenceTrackingSystem = obj["reference_tracking_system"].get<std::string>();
 	ctx.targetTrackingSystem = obj["target_tracking_system"].get<std::string>();
+
+	if (obj["hmd_serial"].is<std::string>())
+		ctx.hmdSerial = obj["hmd_serial"].get<std::string>();
+	if (obj["tracker_serial"].is<std::string>())
+		ctx.trackerSerial = obj["tracker_serial"].get<std::string>();
 	ctx.calibratedRotation(0) = obj["roll"].get<double>();
 	ctx.calibratedRotation(1) = obj["yaw"].get<double>();
 	ctx.calibratedRotation(2) = obj["pitch"].get<double>();
@@ -58,6 +62,22 @@ static void ParseProfile(CalibrationContext &ctx, std::istream &stream)
 		ctx.calibratedScale = obj["scale"].get<double>();
 	else
 		ctx.calibratedScale = 1.0;
+
+	if (obj["rel_qw"].is<double>())
+	{
+		ctx.relativeRotation.w = obj["rel_qw"].get<double>();
+		ctx.relativeRotation.x = obj["rel_qx"].get<double>();
+		ctx.relativeRotation.y = obj["rel_qy"].get<double>();
+		ctx.relativeRotation.z = obj["rel_qz"].get<double>();
+		ctx.relativeTranslation.v[0] = obj["rel_tx"].get<double>();
+		ctx.relativeTranslation.v[1] = obj["rel_ty"].get<double>();
+		ctx.relativeTranslation.v[2] = obj["rel_tz"].get<double>();
+		ctx.validRelativeOffset = true;
+	}
+	else
+	{
+		ctx.validRelativeOffset = false;
+	}
 
 	if (obj["calibration_speed"].is<double>())
 		ctx.calibrationSpeed = (CalibrationContext::Speed)(int) obj["calibration_speed"].get<double>();
@@ -98,8 +118,9 @@ static void WriteProfile(CalibrationContext &ctx, std::ostream &out)
 		return;
 
 	picojson::object profile;
-	profile["reference_tracking_system"].set<std::string>(ctx.referenceTrackingSystem);
 	profile["target_tracking_system"].set<std::string>(ctx.targetTrackingSystem);
+	profile["hmd_serial"].set<std::string>(ctx.hmdSerial);
+	profile["tracker_serial"].set<std::string>(ctx.trackerSerial);
 	profile["roll"].set<double>(ctx.calibratedRotation(0));
 	profile["yaw"].set<double>(ctx.calibratedRotation(1));
 	profile["pitch"].set<double>(ctx.calibratedRotation(2));
@@ -107,6 +128,17 @@ static void WriteProfile(CalibrationContext &ctx, std::ostream &out)
 	profile["y"].set<double>(ctx.calibratedTranslation(1));
 	profile["z"].set<double>(ctx.calibratedTranslation(2));
 	profile["scale"].set<double>(ctx.calibratedScale);
+
+	if (ctx.validRelativeOffset)
+	{
+		profile["rel_qw"].set<double>(ctx.relativeRotation.w);
+		profile["rel_qx"].set<double>(ctx.relativeRotation.x);
+		profile["rel_qy"].set<double>(ctx.relativeRotation.y);
+		profile["rel_qz"].set<double>(ctx.relativeRotation.z);
+		profile["rel_tx"].set<double>(ctx.relativeTranslation.v[0]);
+		profile["rel_ty"].set<double>(ctx.relativeTranslation.v[1]);
+		profile["rel_tz"].set<double>(ctx.relativeTranslation.v[2]);
+	}
 
 	double speed = (int) ctx.calibrationSpeed;
 	profile["calibration_speed"].set<double>(speed);

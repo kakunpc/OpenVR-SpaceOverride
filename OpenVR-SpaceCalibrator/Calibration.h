@@ -8,6 +8,7 @@ enum class CalibrationState
 {
 	None,
 	Begin,
+	Detect,
 	Rotation,
 	Translation,
 	Editing,
@@ -16,14 +17,24 @@ enum class CalibrationState
 struct CalibrationContext
 {
 	CalibrationState state = CalibrationState::None;
-	uint32_t referenceID, targetID;
+	uint32_t targetID;
 
 	Eigen::Vector3d calibratedRotation;
 	Eigen::Vector3d calibratedTranslation;
 	double calibratedScale;
 
-	std::string referenceTrackingSystem;
+	vr::HmdQuaternion_t relativeRotation = { 1, 0, 0, 0 };
+	vr::HmdVector3d_t relativeTranslation = { 0, 0, 0 };
+	bool validRelativeOffset = false;
+
+	vr::HmdMatrix34_t offsetRefRaw = {};
+	vr::HmdMatrix34_t offsetTargetRaw = {};
+	bool haveOffsetSample = false;
+
 	std::string targetTrackingSystem;
+
+	std::string hmdSerial;
+	std::string trackerSerial;
 
 	bool enabled = false;
 	bool validProfile = false;
@@ -59,8 +70,13 @@ struct CalibrationContext
 		calibratedRotation = Eigen::Vector3d();
 		calibratedTranslation = Eigen::Vector3d();
 		calibratedScale = 1.0;
-		referenceTrackingSystem = "";
+		relativeRotation = { 1, 0, 0, 0 };
+		relativeTranslation = { 0, 0, 0 };
+		validRelativeOffset = false;
+		haveOffsetSample = false;
 		targetTrackingSystem = "";
+		hmdSerial = "";
+		trackerSerial = "";
 		enabled = false;
 		validProfile = false;
 	}

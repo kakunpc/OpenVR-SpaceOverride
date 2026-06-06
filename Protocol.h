@@ -6,17 +6,18 @@
 #include <openvr_driver.h>
 #endif
 
-#define OPENVR_SPACECALIBRATOR_PIPE_NAME "\\\\.\\pipe\\OpenVRSpaceCalibratorDriver"
+#define OPENVR_SPACECALIBRATOR_PIPE_NAME "\\\\.\\pipe\\OpenVRSpaceCalibratorDriverEx"
 
 namespace protocol
 {
-	const uint32_t Version = 2;
+	const uint32_t Version = 3;
 
 	enum RequestType
 	{
 		RequestInvalid,
 		RequestHandshake,
 		RequestSetDeviceTransform,
+		RequestSetHmdTracker,
 	};
 
 	enum ResponseType
@@ -61,12 +62,24 @@ namespace protocol
 			openVRID(id), enabled(enabled), updateTranslation(true), updateRotation(true), updateScale(true), translation(translation), rotation(rotation), scale(scale) { }
 	};
 
+	struct SetHmdTracker
+	{
+		uint32_t hmdID;
+		uint32_t trackerID;
+		bool enabled;
+		vr::HmdQuaternion_t offsetRotation;
+		vr::HmdVector3d_t offsetTranslation;
+		vr::HmdQuaternion_t calibrationRotation;
+		vr::HmdVector3d_t calibrationTranslation;
+	};
+
 	struct Request
 	{
 		RequestType type;
 
 		union {
 			SetDeviceTransform setDeviceTransform;
+			SetHmdTracker setHmdTracker;
 		};
 
 		Request() : type(RequestInvalid) { }

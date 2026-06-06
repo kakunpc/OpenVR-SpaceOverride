@@ -4,7 +4,6 @@
 #include "Configuration.h"
 #include "../Version.h"
 
-#include <thread>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -29,8 +28,7 @@ struct VRState
 void TextWithWidth(const char *label, const char *text, float width);
 
 VRState LoadVRState();
-void BuildSystemSelection(const VRState &state);
-void BuildDeviceSelections(const VRState &state);
+void BuildStatus(const VRState &state);
 void BuildProfileEditor();
 void BuildMenu(bool runningInOverlay);
 
@@ -55,8 +53,7 @@ void BuildMainWindow(bool runningInOverlay)
 	ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImGui::GetStyleColorVec4(ImGuiCol_Button));
 
 	auto state = LoadVRState();
-	BuildSystemSelection(state);
-	BuildDeviceSelections(state);
+	BuildStatus(state);
 	BuildMenu(runningInOverlay);
 
 	ImGui::PopStyleColor();
@@ -71,12 +68,6 @@ void BuildMenu(bool runningInOverlay)
 
 	if (CalCtx.state == CalibrationState::None)
 	{
-		if (CalCtx.validProfile && !CalCtx.enabled)
-		{
-			ImGui::TextColored(ImColor(0.8f, 0.2f, 0.2f), "Reference (%s) HMD not detected, profile disabled", CalCtx.referenceTrackingSystem.c_str());
-			ImGui::Text("");
-		}
-
 		float width = ImGui::GetWindowContentRegionWidth(), scale = 1.0f;
 		if (CalCtx.validProfile)
 		{
@@ -84,7 +75,7 @@ void BuildMenu(bool runningInOverlay)
 			scale = 1.0f / 3.0f;
 		}
 
-		if (ImGui::Button("Start Calibration", ImVec2(width * scale, ImGui::GetTextLineHeight() * 2)))
+		if (ImGui::Button("Calibrate", ImVec2(width * scale, ImGui::GetTextLineHeight() * 2)))
 		{
 			ImGui::OpenPopup("Calibration Progress");
 			StartCalibration();
@@ -99,7 +90,7 @@ void BuildMenu(bool runningInOverlay)
 			}
 
 			ImGui::SameLine();
-			if (ImGui::Button("Clear Calibration", ImVec2(width * scale, ImGui::GetTextLineHeight() * 2)))
+			if (ImGui::Button("Remove Calibration", ImVec2(width * scale, ImGui::GetTextLineHeight() * 2)))
 			{
 				CalCtx.Clear();
 				SaveProfile(CalCtx);
@@ -172,7 +163,7 @@ void BuildMenu(bool runningInOverlay)
 
 	ImGui::SetNextWindowPos(ImVec2(10.0f, ImGui::GetWindowHeight() - ImGui::GetItemsLineHeightWithSpacing()));
 	ImGui::BeginChild("bottom line", ImVec2(ImGui::GetWindowWidth() - 20.0f, ImGui::GetItemsLineHeightWithSpacing() * 2), false);
-	ImGui::Text("OpenVR Space Calibrator v" SPACECAL_VERSION_STRING " - by tach/pushrax");
+	ImGui::Text("OpenVR Space Calibrator SPECIAL EDITION v" SPACECAL_VERSION_STRING " - by Nyabsi & tach/pushrax");
 	if (runningInOverlay)
 	{
 		ImGui::SameLine();
@@ -214,189 +205,35 @@ void BuildMenu(bool runningInOverlay)
 	}
 }
 
-void BuildSystemSelection(const VRState &state)
+void BuildStatus(const VRState &state)
 {
-	if (state.trackingSystems.empty())
+	const VRDevice *hmd = nullptr;
+	const VRDevice *tracker = nullptr;
+	for (auto &device : state.devices)
 	{
-		ImGui::Text("No tracked devices are present");
+		if (device.id == vr::k_unTrackedDeviceIndex_Hmd)
+			hmd = &device;
+		if (!CalCtx.trackerSerial.empty() && device.serial == CalCtx.trackerSerial)
+			tracker = &device;
+	}
+
+	if (hmd)
+		ImGui::Text("HMD: %s (%s)", hmd->serial.c_str(), hmd->trackingSystem.c_str());
+	else
+		ImGui::TextColored(ImColor(0.8f, 0.2f, 0.2f), "No HMD detected");
+
+	if (!CalCtx.validProfile)
+	{
+		ImGui::TextColored(ImColor(0.5f, 0.5f, 0.5f), "No calibration. Press Calibrate, then move your head to identify the headset tracker.");
 		return;
 	}
 
-	ImGuiStyle &style = ImGui::GetStyle();
-	float paneWidth = ImGui::GetWindowContentRegionWidth() / 2 - style.FramePadding.x;
-
-	TextWithWidth("ReferenceSystemLabel", "Reference Space", paneWidth);
-	ImGui::SameLine();
-	TextWithWidth("TargetSystemLabel", "Target Space", paneWidth);
-
-	int currentReferenceSystem = -1;
-	int currentTargetSystem = -1;
-	int firstReferenceSystemNotTargetSystem = -1;
-
-	std::vector<const char *> referenceSystems;
-	for (auto &str : state.trackingSystems)
-	{
-		if (str == CalCtx.referenceTrackingSystem)
-		{
-			currentReferenceSystem = (int) referenceSystems.size();
-		}
-		else if (firstReferenceSystemNotTargetSystem == -1 && str != CalCtx.targetTrackingSystem)
-		{
-			firstReferenceSystemNotTargetSystem = (int) referenceSystems.size();
-		}
-		referenceSystems.push_back(str.c_str());
-	}
-
-	if (currentReferenceSystem == -1 && CalCtx.referenceTrackingSystem == "")
-	{
-		currentReferenceSystem = firstReferenceSystemNotTargetSystem;
-	}
-
-	ImGui::PushItemWidth(paneWidth);
-	ImGui::Combo("##ReferenceTrackingSystem", &currentReferenceSystem, &referenceSystems[0], (int) referenceSystems.size());
-
-	if (currentReferenceSystem != -1 && currentReferenceSystem < (int) referenceSystems.size())
-	{
-		CalCtx.referenceTrackingSystem = std::string(referenceSystems[currentReferenceSystem]);
-		if (CalCtx.referenceTrackingSystem == CalCtx.targetTrackingSystem)
-			CalCtx.targetTrackingSystem = "";
-	}
-
-	if (CalCtx.targetTrackingSystem == "")
-		currentTargetSystem = 0;
-
-	std::vector<const char *> targetSystems;
-	for (auto &str : state.trackingSystems)
-	{
-		if (str != CalCtx.referenceTrackingSystem)
-		{
-			if (str != "" && str == CalCtx.targetTrackingSystem)
-				currentTargetSystem = (int) targetSystems.size();
-			targetSystems.push_back(str.c_str());
-		}
-	}
-
-	ImGui::SameLine();
-	ImGui::Combo("##TargetTrackingSystem", &currentTargetSystem, &targetSystems[0], (int) targetSystems.size());
-
-	if (currentTargetSystem != -1 && currentTargetSystem < targetSystems.size())
-	{
-		CalCtx.targetTrackingSystem = std::string(targetSystems[currentTargetSystem]);
-	}
-
-	ImGui::PopItemWidth();
-}
-
-void AppendSeparated(std::string &buffer, const std::string &suffix)
-{
-	if (!buffer.empty())
-		buffer += " | ";
-	buffer += suffix;
-}
-
-std::string LabelString(const VRDevice &device)
-{
-	std::string label;
-
-	/*if (device.controllerRole == vr::TrackedControllerRole_LeftHand)
-		label = "Left Controller";
-	else if (device.controllerRole == vr::TrackedControllerRole_RightHand)
-		label = "Right Controller";
-	else if (device.deviceClass == vr::TrackedDeviceClass_Controller)
-		label = "Controller";
-	else if (device.deviceClass == vr::TrackedDeviceClass_HMD)
-		label = "HMD";
-	else if (device.deviceClass == vr::TrackedDeviceClass_GenericTracker)
-		label = "Tracker";*/
-
-	AppendSeparated(label, device.model);
-	AppendSeparated(label, device.serial);
-	return label;
-}
-
-void BuildDeviceSelection(const VRState &state, int &selected, const std::string &system)
-{
-	ImGui::TextColored(ImColor(0.5f, 0.5f, 0.5f), "Devices from: %s", system.c_str());
-
-	if (selected != -1)
-	{
-		bool matched = false;
-		for (auto &device : state.devices)
-		{
-			if (device.trackingSystem != system)
-				continue;
-
-			if (selected == device.id)
-			{
-				matched = true;
-				break;
-			}
-		}
-
-		if (!matched)
-		{
-			// Device is no longer present.
-			selected = -1;
-		}
-	}
-
-	if (selected == -1)
-	{
-		for (auto &device : state.devices)
-		{
-			if (device.trackingSystem != system)
-				continue;
-
-			if (device.controllerRole == vr::TrackedControllerRole_LeftHand)
-			{
-				selected = device.id;
-				break;
-			}
-		}
-	}
-
-	for (auto &device : state.devices)
-	{
-		if (device.trackingSystem != system)
-			continue;
-
-		if (selected == -1)
-			selected = device.id;
-
-		auto label = LabelString(device);
-		if (ImGui::Selectable(label.c_str(), selected == device.id))
-			selected = device.id;
-	}
-}
-
-void BuildDeviceSelections(const VRState &state)
-{
-	ImGuiStyle &style = ImGui::GetStyle();
-	ImVec2 paneSize(ImGui::GetWindowContentRegionWidth() / 2 - style.FramePadding.x, ImGui::GetTextLineHeightWithSpacing() * 5 + style.ItemSpacing.y * 4);
-
-	ImGui::BeginChild("left device pane", paneSize, true);
-	static int selectedRefDevice = -1;
-	BuildDeviceSelection(state, selectedRefDevice, CalCtx.referenceTrackingSystem);
-	CalCtx.referenceID = selectedRefDevice;
-	ImGui::EndChild();
-
-	ImGui::SameLine();
-
-	ImGui::BeginChild("right device pane", paneSize, true);
-	static int selectedCalDevice = -1;
-	BuildDeviceSelection(state, selectedCalDevice, CalCtx.targetTrackingSystem);
-	CalCtx.targetID = selectedCalDevice;
-	ImGui::EndChild();
-
-	if (ImGui::Button("Identify selected devices (blinks LED or vibrates)", ImVec2(ImGui::GetWindowContentRegionWidth(), ImGui::GetTextLineHeightWithSpacing() + 4.0f)))
-	{
-		for (unsigned i = 0; i < 100; ++i)
-		{
-			vr::VRSystem()->TriggerHapticPulse(CalCtx.targetID, 0, 2000);
-			vr::VRSystem()->TriggerHapticPulse(CalCtx.referenceID, 0, 2000);
-			std::this_thread::sleep_for(std::chrono::milliseconds(5));
-		}
-	}
+	if (!tracker)
+		ImGui::TextColored(ImColor(0.8f, 0.2f, 0.2f), "Headset tracker (%s) not connected, override disabled", CalCtx.trackerSerial.c_str());
+	else if (!CalCtx.enabled)
+		ImGui::TextColored(ImColor(0.8f, 0.2f, 0.2f), "Override disabled (HMD tracking system changed?)");
+	else
+		ImGui::TextColored(ImColor(0.2f, 0.7f, 0.2f), "Override active: HMD driven by %s (%s)", tracker->serial.c_str(), tracker->trackingSystem.c_str());
 }
 
 VRState LoadVRState()

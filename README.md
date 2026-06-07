@@ -25,6 +25,10 @@ https://github.com/user-attachments/assets/de458fa9-3029-4aca-95d1-5753ce6602a9
 
 Once it's calibrated, the headset is driven entirely by the tracker, so if you don't need the SLAM devices you can disable the headset's own tracking too.
 
+## Usage of Disable HMD Alignment
+
+https://github.com/user-attachments/assets/7e935bd5-e37d-4f5a-87d0-a6c1373fd121
+
 ## Showcase
 
 <img width="1202" height="832" alt="image" src="https://github.com/user-attachments/assets/ad810fc5-caef-4ff7-9efd-4fa208076279" />

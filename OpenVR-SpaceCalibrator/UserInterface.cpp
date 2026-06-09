@@ -165,11 +165,10 @@ void BuildMenu(bool runningInOverlay)
 
 	ImGui::SetNextWindowPos(ImVec2(10.0f, ImGui::GetWindowHeight() - ImGui::GetItemsLineHeightWithSpacing()));
 	ImGui::BeginChild("bottom line", ImVec2(ImGui::GetWindowWidth() - 20.0f, ImGui::GetItemsLineHeightWithSpacing() * 2), false);
-	ImGui::Text("OpenVR Space Calibrator SPECIAL EDITION v" SPACECAL_VERSION_STRING " - by Nyabsi & tach/pushrax");
+	ImGui::Text("OpenVR-SpaceOverride v" SPACECAL_VERSION_STRING " - by Nyabsi (Special thanks to tach/pushrax for OpenVR-SpaceCalibrator)");
 	if (runningInOverlay)
 	{
-		ImGui::SameLine();
-		ImGui::Text("- close VR overlay to use mouse");
+		ImGui::Text("close VR overlay to use mouse");
 	}
 	ImGui::EndChild();
 

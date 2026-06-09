@@ -1,4 +1,4 @@
-# OpenVR Space Calibrator (Special Edition)
+# OpenVR-SpaceOverride
 
 This is a fork of [OpenVR Space Calibrator](https://github.com/pushrax/OpenVR-SpaceCalibrator) I made for headsets like the Pico and Galaxy XR, where the other calibration solutions never really worked well for me. You'd calibrate, it'd look fine, and then after walking around a bit your hands and trackers would slowly slide out of place again.
 

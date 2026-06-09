@@ -6,17 +6,17 @@
 ;--------------------------------
 ; General Configuration
 
-!define APP_VERSION "2.0.0"
-!define APP_VERSION_META "2.0.0.0"
-!define APP_NAME "OpenVR-SpaceCalibrator Special Edition"
+!define APP_VERSION "2.1.0"
+!define APP_VERSION_META "2.1.0.0"
+!define APP_NAME "OpenVR-SpaceOverride"
 
 !define INSTALL_DIR "$PROGRAMFILES64\${APP_NAME}"
 !define LICENSE_FILE "../bin/LICENSE.txt"
 !define FILES_DIR "../bin/"
-!define DRIVER_DIR "../spacecalibratorex"
+!define DRIVER_DIR "../driver"
 
 Name "${APP_NAME}"
-OutFile "${APP_NAME} Installer.exe"
+OutFile "${APP_NAME}_Installer.exe"
 InstallDir "${INSTALL_DIR}"
 InstallDirRegKey HKLM "Software\${APP_NAME}\Main" ""
 RequestExecutionLevel admin
@@ -107,7 +107,7 @@ Section "Install" SecInstall
 	File "${FILES_DIR}\LICENSE"
 	File "${FILES_DIR}\LICENSE.MIT"
 	File "${FILES_DIR}\manifest.vrmanifest"
-    File "${FILES_DIR}\OpenVR-SpaceCalibrator.exe"
+    File "${FILES_DIR}\OpenVR-SpaceOverride.exe"
     File "${FILES_DIR}\openvr_api.dll"
     File "${FILES_DIR}\icon.png"
 
@@ -120,13 +120,13 @@ Section "Install" SecInstall
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "DisplayName" "${APP_NAME}"
     WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}" "UninstallString" "$\"$INSTDIR\Uninstall.exe$\""
 
-    CreateShortCut "$SMPROGRAMS\${APP_NAME}.lnk" "$INSTDIR\OpenVR-SpaceCalibrator.exe"
+    CreateShortCut "$SMPROGRAMS\${APP_NAME}.lnk" "$INSTDIR\OpenVR-SpaceOverride.exe"
 
     ExecWait '"C:\\Program Files (x86)\\Steam\\steamapps\\common\\SteamVR\\bin\\win64\\vrpathreg.exe" adddriver "$INSTDIR\\driver"'
 
 	SetOutPath "$INSTDIR"
-	nsExec::ExecToLog '"$INSTDIR\OpenVR-SpaceCalibrator.exe" -installmanifest'
-	nsExec::ExecToLog '"$INSTDIR\OpenVR-SpaceCalibrator.exe" -activatemultipledrivers'
+	nsExec::ExecToLog '"$INSTDIR\OpenVR-SpaceOverride.exe" -installmanifest'
+	nsExec::ExecToLog '"$INSTDIR\OpenVR-SpaceOverride.exe" -activatemultipledrivers'
 
 SectionEnd
 
@@ -136,16 +136,16 @@ SectionEnd
 Section "Uninstall"
 
 	SetOutPath "$INSTDIR"
-	nsExec::ExecToLog '"$INSTDIR\OpenVR-SpaceCalibrator.exe" -removemanifest'
+	nsExec::ExecToLog '"$INSTDIR\OpenVR-SpaceOverride.exe" -removemanifest'
 
     Delete "$INSTDIR\LICENSE.txt"
 	Delete "$INSTDIR\LICENSE"
 	Delete "$INSTDIR\LICENSE.MIT"
 	Delete "$INSTDIR\manifest.vrmanifest"
-    Delete "$INSTDIR\OpenVR-SpaceCalibrator.exe"
+    Delete "$INSTDIR\OpenVR-SpaceOverride.exe"
     Delete "$INSTDIR\openvr_api.dll"
     Delete "$INSTDIR\icon.png"
-    RMDir /r $INSTDIR\spacecalibratorex"
+    RMDir /r $INSTDIR\driver"
 
     DeleteRegKey HKLM "Software\${APP_NAME}"
     DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APP_NAME}"

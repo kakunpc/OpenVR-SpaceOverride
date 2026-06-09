@@ -16,7 +16,7 @@
 name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
 processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
-#define OPENVR_APPLICATION_KEY "pushrax.SpaceCalibrator"
+#define OPENVR_APPLICATION_KEY "Nyabsi.SpaceOverride"
 
 extern "C" __declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 extern "C" __declspec(dllexport) DWORD AmdPowerXpressRequestHighPerformance = 0x00000001;
@@ -70,7 +70,7 @@ void CreateGLFWWindow()
 	fboTextureWidth = 1200;
 	fboTextureHeight = 800;
 
-	glfwWindow = glfwCreateWindow(fboTextureWidth, fboTextureHeight, "OpenVR-SpaceCalibrator", NULL, NULL);
+	glfwWindow = glfwCreateWindow(fboTextureWidth, fboTextureHeight, "OpenVR-SpaceOverride", NULL, NULL);
 	if (!glfwWindow)
 		throw std::runtime_error("Failed to create window");
 
@@ -122,13 +122,13 @@ void TryCreateVROverlay()
 		return;
 
 	vr::VROverlayError error = vr::VROverlay()->CreateDashboardOverlay(
-		"pushrax.SpaceCalibrator", "Space Cal",
+		"Nyabsi.SpaceOverride", "Space Override",
 		&overlayMainHandle, &overlayThumbnailHandle
 	);
 
 	if (error == vr::VROverlayError_KeyInUse)
 	{
-		throw std::runtime_error("Another instance of OpenVR Space Calibrator is already running");
+		throw std::runtime_error("Another instance of OpenVR Space Override is already running");
 	}
 	else if (error != vr::VROverlayError_None)
 	{
@@ -248,7 +248,7 @@ void RunLoop()
 
 				vr::VROverlay()->ShowKeyboardForOverlay(
 					overlayMainHandle, vr::k_EGamepadTextInputModeNormal, vr::k_EGamepadTextInputLineModeSingleLine,
-					unFlags, "Space Calibrator Overlay", sizeof buf, buf, 0
+					unFlags, "Space Override Overlay", sizeof buf, buf, 0
 				);
 				keyboardOpen = true;
 			}

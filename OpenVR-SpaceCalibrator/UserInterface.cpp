@@ -41,8 +41,8 @@ void BuildMainWindow(bool runningInOverlay)
 {
 	auto &io = ImGui::GetIO();
 
-	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiSetCond_Always);
-	ImGui::SetNextWindowSize(io.DisplaySize, ImGuiSetCond_Always);
+	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+	ImGui::SetNextWindowSize(io.DisplaySize);
 
 	if (!ImGui::Begin("MainWindow", nullptr, bareWindowFlags))
 	{
@@ -68,7 +68,7 @@ void BuildMenu(bool runningInOverlay)
 
 	if (CalCtx.state == CalibrationState::None)
 	{
-		float width = ImGui::GetWindowContentRegionWidth(), scale = 1.0f;
+		float width = ImGui::GetContentRegionAvail().x, scale = 1.0f;
 		if (CalCtx.validProfile)
 		{
 			width -= style.FramePadding.x * 4.0f;
@@ -103,7 +103,7 @@ void BuildMenu(bool runningInOverlay)
 		ImGui::SameLine();
 		ImGui::Checkbox("Disable Angular Velocity", &CalCtx.disableAngularVelocity);
 
-		width = ImGui::GetWindowContentRegionWidth();
+		width = ImGui::GetContentRegionAvail().x;
 		scale = 1.0f;
 		if (CalCtx.chaperone.valid)
 		{
@@ -156,7 +156,7 @@ void BuildMenu(bool runningInOverlay)
 	{
 		BuildProfileEditor();
 
-		if (ImGui::Button("Save Profile", ImVec2(ImGui::GetWindowContentRegionWidth(), ImGui::GetTextLineHeight() * 2)))
+		if (ImGui::Button("Save Profile", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetTextLineHeight() * 2)))
 		{
 			SaveProfile(CalCtx);
 			CalCtx.state = CalibrationState::None;
@@ -164,11 +164,11 @@ void BuildMenu(bool runningInOverlay)
 	}
 	else
 	{
-		ImGui::Button("Calibration in progress...", ImVec2(ImGui::GetWindowContentRegionWidth(), ImGui::GetTextLineHeight() * 2));
+		ImGui::Button("Calibration in progress...", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetTextLineHeight() * 2));
 	}
 
-	ImGui::SetNextWindowPos(ImVec2(10.0f, ImGui::GetWindowHeight() - ImGui::GetItemsLineHeightWithSpacing()));
-	ImGui::BeginChild("bottom line", ImVec2(ImGui::GetWindowWidth() - 20.0f, ImGui::GetItemsLineHeightWithSpacing() * 2), false);
+	ImGui::SetNextWindowPos(ImVec2(10.0f, ImGui::GetWindowHeight() - ImGui::GetFrameHeightWithSpacing()));
+	ImGui::BeginChild("bottom line", ImVec2(ImGui::GetWindowWidth() - 20.0f, ImGui::GetFrameHeightWithSpacing() * 2), false);
 	ImGui::Text("OpenVR-SpaceOverride v" SPACECAL_VERSION_STRING " - by Nyabsi (Special thanks to tach/pushrax for OpenVR-SpaceCalibrator)");
 	if (runningInOverlay)
 	{
@@ -176,8 +176,8 @@ void BuildMenu(bool runningInOverlay)
 	}
 	ImGui::EndChild();
 
-	ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f), ImGuiSetCond_Always);
-	ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x - 40.0f, io.DisplaySize.y - 40.0f), ImGuiSetCond_Always);
+	ImGui::SetNextWindowPos(ImVec2(20.0f, 20.0f));
+	ImGui::SetNextWindowSize(ImVec2(io.DisplaySize.x - 40.0f, io.DisplaySize.y - 40.0f));
 	if (ImGui::BeginPopupModal("Calibration Progress", nullptr, bareWindowFlags))
 	{
 		ImGui::PushStyleColor(ImGuiCol_FrameBg, (ImVec4)ImColor(0, 0, 0));
@@ -202,7 +202,7 @@ void BuildMenu(bool runningInOverlay)
 		if (CalCtx.state == CalibrationState::None)
 		{
 			ImGui::Text("");
-			if (ImGui::Button("Close", ImVec2(ImGui::GetWindowContentRegionWidth(), ImGui::GetTextLineHeight() * 2)))
+			if (ImGui::Button("Close", ImVec2(ImGui::GetFrameHeightWithSpacing(), ImGui::GetTextLineHeight() * 2)))
 				ImGui::CloseCurrentPopup();
 		}
 
@@ -303,7 +303,7 @@ VRState LoadVRState()
 void BuildProfileEditor()
 {
 	ImGuiStyle &style = ImGui::GetStyle();
-	float width = ImGui::GetWindowContentRegionWidth() / 3.0f - style.FramePadding.x;
+	float width = ImGui::GetContentRegionAvail().x / 3.0f - style.FramePadding.x;
 	float widthF = width - style.FramePadding.x;
 
 	TextWithWidth("YawLabel", "Yaw", width);

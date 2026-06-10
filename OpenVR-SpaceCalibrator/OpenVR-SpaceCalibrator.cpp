@@ -11,6 +11,7 @@
 #include <GLFW/glfw3.h>
 #include <openvr.h>
 #include <direct.h>
+#include <imgui/imgui_impl_openvr.h>
 
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
 name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
@@ -35,7 +36,7 @@ void CreateConsole()
 	}
 }
 
-//#define DEBUG_LOGS
+#define DEBUG_LOGS
 
 void GLFWErrorCallback(int error, const char* description)
 {
@@ -92,7 +93,7 @@ void CreateGLFWWindow()
 	io.IniFilename = nullptr;
 	io.Fonts->AddFontFromMemoryCompressedTTF(DroidSans_compressed_data, DroidSans_compressed_size, 24.0f);
 
-	ImGui_ImplGlfw_InitForOpenGL(glfwWindow, true);
+	ImGui_ImplGlfw_InitForOpenGL(glfwWindow, true); // crash
 	ImGui_ImplOpenGL3_Init("#version 330");
 
 	ImGui::StyleColorsDark();
@@ -142,6 +143,13 @@ void TryCreateVROverlay()
 	std::string iconPath = cwd;
 	iconPath += "\\icon.png";
 	vr::VROverlay()->SetOverlayFromFile(overlayThumbnailHandle, iconPath.c_str());
+
+	ImGui_ImplOpenVR_InitInfo openvr_init_info = {};
+	openvr_init_info.handle = overlayMainHandle;
+	openvr_init_info.width = fboTextureWidth;
+	openvr_init_info.height = fboTextureHeight;
+
+	ImGui_ImplOpenVR_Init(&openvr_init_info);
 }
 
 void ActivateMultipleDrivers()
@@ -220,75 +228,19 @@ void RunLoop()
 			auto &io = ImGui::GetIO();
 			dashboardVisible = vr::VROverlay()->IsActiveDashboardOverlay(overlayMainHandle);
 
-			static bool keyboardOpen = false, keyboardJustClosed = false;
-
-			// After closing the keyboard, this code waits one frame for ImGui to pick up the new text from SetActiveText
-			// before clearing the active widget. Then it waits another frame before allowing the keyboard to open again,
-			// otherwise it will do so instantly since WantTextInput is still true on the second frame.
-			if (keyboardJustClosed && keyboardOpen)
+			vr::VREvent_t vr_event = {};
+			while (vr::VROverlay()->PollNextOverlayEvent(overlayMainHandle, &vr_event, sizeof(vr_event)))
 			{
-				ImGui::ClearActiveID();
-				keyboardOpen = false;
-			}
-			else if (keyboardJustClosed)
-			{
-				keyboardJustClosed = false;
-			}
-			else if (!io.WantTextInput)
-			{
-				// User might close the keyboard without hitting Done, so we unset the flag to allow it to open again.
-				keyboardOpen = false;
-			}
-			else if (io.WantTextInput && !keyboardOpen && !keyboardJustClosed)
-			{
-				char buf[0x400];
-				ImGui::GetActiveText(buf, sizeof buf);
-				buf[0x3ff] = 0;
-				uint32_t unFlags = 0; // EKeyboardFlags 
-
-				vr::VROverlay()->ShowKeyboardForOverlay(
-					overlayMainHandle, vr::k_EGamepadTextInputModeNormal, vr::k_EGamepadTextInputLineModeSingleLine,
-					unFlags, "Space Override Overlay", sizeof buf, buf, 0
-				);
-				keyboardOpen = true;
-			}
-
-			vr::VREvent_t vrEvent;
-			while (vr::VROverlay()->PollNextOverlayEvent(overlayMainHandle, &vrEvent, sizeof(vrEvent)))
-			{
-				switch (vrEvent.eventType) {
-				case vr::VREvent_MouseMove:
-					io.MousePos.x = vrEvent.data.mouse.x;
-					io.MousePos.y = vrEvent.data.mouse.y;
-					break;
-				case vr::VREvent_MouseButtonDown:
-					io.MouseDown[vrEvent.data.mouse.button == vr::VRMouseButton_Left ? 0 : 1] = true;
-					break;
-				case vr::VREvent_MouseButtonUp:
-					io.MouseDown[vrEvent.data.mouse.button == vr::VRMouseButton_Left ? 0 : 1] = false;
-					break;
-				case vr::VREvent_ScrollDiscrete:
-					io.MouseWheelH += vrEvent.data.scroll.xdelta * 360.0f * 8.0f;
-					io.MouseWheel += vrEvent.data.scroll.ydelta * 360.0f * 8.0f;
-					break;
-				case vr::VREvent_KeyboardDone: {
-					char buf[0x400];
-					vr::VROverlay()->GetKeyboardText(buf, sizeof buf);
-					ImGui::SetActiveText(buf, sizeof buf);
-					keyboardJustClosed = true;
-					break;
-				}
-				case vr::VREvent_Quit:
-					return;
-				}
+				ImGui_ImplOpenVR_ProcessOverlayEvent(vr_event);
 			}
 		}
 
 		ImGui::GetIO().DisplaySize = ImVec2((float) fboTextureWidth, (float) fboTextureHeight);
 
-		ImGui_ImplGlfw_SetReadMouseFromGlfw(!dashboardVisible);
+		// ImGui_ImplGlfw_SetReadMouseFromGlfw(!dashboardVisible);
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
+		ImGui_ImplOpenVR_NewFrame();
 		ImGui::NewFrame();
 
 		BuildMainWindow(dashboardVisible);
@@ -373,6 +325,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
 
 		ImGui_ImplOpenGL3_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
+		ImGui_ImplOpenVR_Shutdown();
 		ImGui::DestroyContext();
 	}
 	catch (std::runtime_error &e)

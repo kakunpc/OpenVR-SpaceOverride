@@ -57,14 +57,6 @@ To set it up:
 > [!NOTE]
 > After a headset restart, you may need to redo the yaw alignment.
 
-## Showcase
-
-<img width="1202" height="832" alt="image" src="https://github.com/user-attachments/assets/ad810fc5-caef-4ff7-9efd-4fa208076279" />
-
-<img width="1202" height="832" alt="image" src="https://github.com/user-attachments/assets/34b7b18b-df07-478b-9f0a-2d75d71594c8" />
-
-<img width="1202" height="832" alt="image" src="https://github.com/user-attachments/assets/ff913b65-8f64-4c43-b2d4-840e19b6165d" />
-
 ## Troubleshooting
 
 ### My calibration feels odd / slightly off

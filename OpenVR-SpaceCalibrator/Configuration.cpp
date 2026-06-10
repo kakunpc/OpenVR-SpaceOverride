@@ -189,7 +189,7 @@ static void LogRegistryResult(LSTATUS result)
 	std::cerr << "Opening registry key: " << message << std::endl;
 }
 
-static const char *RegistryKey = "Software\\OpenVR-SpaceCalibrator";
+static const char *RegistryKey = "Software\\OpenVR-SpaceOverride";
 
 static std::string ReadRegistryKey()
 {

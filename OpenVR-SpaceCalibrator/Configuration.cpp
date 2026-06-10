@@ -64,6 +64,8 @@ static void ParseProfile(CalibrationContext &ctx, std::istream &stream)
 		ctx.calibratedScale = 1.0;
 
 	ctx.enableNative = obj["native"].get<bool>();
+	ctx.fallbackToSlam = obj["fallbackSlam"].get<bool>();
+	ctx.disableAngularVelocity = obj["eAngVel"].get<bool>();
 
 	if (obj["rel_qw"].is<double>())
 	{
@@ -130,7 +132,10 @@ static void WriteProfile(CalibrationContext &ctx, std::ostream &out)
 	profile["y"].set<double>(ctx.calibratedTranslation(1));
 	profile["z"].set<double>(ctx.calibratedTranslation(2));
 	profile["scale"].set<double>(ctx.calibratedScale);
+
 	profile["native"].set<bool>(ctx.enableNative);
+	profile["fallbackSlam"].set<bool>(ctx.fallbackToSlam);
+	profile["eAngVel"].set<bool>(ctx.disableAngularVelocity);
 
 	if (ctx.validRelativeOffset)
 	{

@@ -98,6 +98,10 @@ void BuildMenu(bool runningInOverlay)
 		}
 
 		ImGui::Checkbox("Disable HMD Alignment", &CalCtx.enableNative);
+		ImGui::SameLine();
+		ImGui::Checkbox("Fallback to SLAM", &CalCtx.fallbackToSlam);
+		ImGui::SameLine();
+		ImGui::Checkbox("Disable Angular Velocity", &CalCtx.disableAngularVelocity);
 
 		width = ImGui::GetWindowContentRegionWidth();
 		scale = 1.0f;

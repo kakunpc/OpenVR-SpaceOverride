@@ -42,6 +42,8 @@ struct CalibrationContext
 	double wantedUpdateInterval = 1.0;
 
 	bool enableNative = false;
+	bool fallbackToSlam = true;
+	bool disableAngularVelocity = false;
 
 	enum Speed
 	{

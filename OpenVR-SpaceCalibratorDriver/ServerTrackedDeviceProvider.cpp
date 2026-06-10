@@ -85,6 +85,8 @@ void ServerTrackedDeviceProvider::SetHmdTracker(const protocol::SetHmdTracker &c
 {
 	hmdTracker.enabled = cmd.enabled;
 	hmdTracker.native = cmd.native;
+	hmdTracker.slamFallback = cmd.slamFallback;
+	hmdTracker.disableAngVel = cmd.disableAngVel;
 	hmdTracker.hmdID = cmd.hmdID;
 	hmdTracker.trackerID = cmd.trackerID;
 	hmdTracker.offsetRotation = cmd.offsetRotation;
@@ -189,7 +191,8 @@ bool ServerTrackedDeviceProvider::HandleDevicePoseUpdated(uint32_t openVRID, vr:
 					for (int i = 0; i < 3; i++)
 					{
 						pose.vecVelocity[i] = trackerVel[i] + tangential.v[i];
-						pose.vecAngularVelocity[i] = trackerAngVel[i];
+						if (!hmdTracker.disableAngVel)
+						    pose.vecAngularVelocity[i] = trackerAngVel[i];
 					}
 				}
 				else {
@@ -202,7 +205,8 @@ bool ServerTrackedDeviceProvider::HandleDevicePoseUpdated(uint32_t openVRID, vr:
 					for (int i = 0; i < 3; i++)
 					{
 						pose.vecVelocity[i] = vel.v[i] + tangential.v[i];
-						pose.vecAngularVelocity[i] = angVel.v[i];
+						if (!hmdTracker.disableAngVel)
+						    pose.vecAngularVelocity[i] = angVel.v[i];
 					}
 				}
 
@@ -213,40 +217,42 @@ bool ServerTrackedDeviceProvider::HandleDevicePoseUpdated(uint32_t openVRID, vr:
 				pose.poseTimeOffset = 0;
 			}
 			else {
-				if (hmdTracker.native) {
-					pose.qWorldFromDriverRotation = { 1, 0, 0, 0 };
-					pose.vecWorldFromDriverTranslation[0] = 0;
-					pose.vecWorldFromDriverTranslation[1] = 0;
-					pose.vecWorldFromDriverTranslation[2] = 0;
+				if (!hmdTracker.slamFallback) {
+					if (hmdTracker.native) {
+						pose.qWorldFromDriverRotation = { 1, 0, 0, 0 };
+						pose.vecWorldFromDriverTranslation[0] = 0;
+						pose.vecWorldFromDriverTranslation[1] = 0;
+						pose.vecWorldFromDriverTranslation[2] = 0;
+					}
+					else {
+						pose.qWorldFromDriverRotation = hmdTracker.calibrationRotation;
+						pose.vecWorldFromDriverTranslation[0] = hmdTracker.calibrationTranslation.v[0];
+						pose.vecWorldFromDriverTranslation[1] = hmdTracker.calibrationTranslation.v[1];
+						pose.vecWorldFromDriverTranslation[2] = hmdTracker.calibrationTranslation.v[2];
+					}
+
+					pose.qDriverFromHeadRotation = { 1, 0, 0, 0 };
+					pose.vecDriverFromHeadTranslation[0] = 0;
+					pose.vecDriverFromHeadTranslation[1] = 0;
+					pose.vecDriverFromHeadTranslation[2] = 0;
+
+					pose.qRotation = { 1, 0, 0, 0 };
+					pose.vecPosition[0] = 0;
+					pose.vecPosition[1] = 0;
+					pose.vecPosition[2] = 0;
+
+					for (int i = 0; i < 3; i++)
+					{
+						pose.vecVelocity[i] = 0;
+						pose.vecAngularVelocity[i] = 0;
+					}
+
+					pose.poseIsValid = false;
+					pose.deviceIsConnected = true;
+					pose.result = vr::TrackingResult_Running_OutOfRange;
+					pose.shouldApplyHeadModel = false;
+					pose.poseTimeOffset = 0;
 				}
-				else {
-					pose.qWorldFromDriverRotation = hmdTracker.calibrationRotation;
-					pose.vecWorldFromDriverTranslation[0] = hmdTracker.calibrationTranslation.v[0];
-					pose.vecWorldFromDriverTranslation[1] = hmdTracker.calibrationTranslation.v[1];
-					pose.vecWorldFromDriverTranslation[2] = hmdTracker.calibrationTranslation.v[2];
-				}
-
-				pose.qDriverFromHeadRotation = { 1, 0, 0, 0 };
-				pose.vecDriverFromHeadTranslation[0] = 0;
-				pose.vecDriverFromHeadTranslation[1] = 0;
-				pose.vecDriverFromHeadTranslation[2] = 0;
-
-				pose.qRotation = { 1, 0, 0, 0 };
-				pose.vecPosition[0] = 0;
-				pose.vecPosition[1] = 0;
-				pose.vecPosition[2] = 0;
-
-				for (int i = 0; i < 3; i++)
-				{
-					pose.vecVelocity[i] = 0;
-					pose.vecAngularVelocity[i] = 0;
-				}
-
-				pose.poseIsValid = false;
-				pose.deviceIsConnected = true;
-				pose.result = vr::TrackingResult_Running_OutOfRange;
-				pose.shouldApplyHeadModel = false;
-				pose.poseTimeOffset = 0;
 			}
 		}
 	}

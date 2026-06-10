@@ -57,6 +57,8 @@ private:
 	{
 		bool enabled = false;
 		bool native = false;
+		bool slamFallback;
+		bool disableAngVel;
 		uint32_t hmdID = vr::k_unTrackedDeviceIndex_Hmd;
 		uint32_t trackerID = vr::k_unTrackedDeviceIndexInvalid;
 		vr::HmdQuaternion_t offsetRotation = { 1, 0, 0, 0 };

@@ -70,6 +70,7 @@ namespace protocol
 		bool native;
 		bool slamFallback;
 		bool disableAngVel;
+		float predictionTime;
 		vr::HmdQuaternion_t offsetRotation;
 		vr::HmdVector3d_t offsetTranslation;
 		vr::HmdQuaternion_t calibrationRotation;

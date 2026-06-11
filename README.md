@@ -27,6 +27,7 @@ This puts the headset and all your other lighthouse devices on the same tracking
 | Virtual Desktop | ✅ Works | |
 | ALVR | ✅ Works | |
 | Steam Link | ⚠️ Sub-optimal | Steam Link appears to do additional reprojection / pose prediction on-device, and some functionality doesn't work because it uses stage tracking rather than local space tracking (which is needed for yaw correction). |
+| Display Port powered SLAM devices | ✅ Works | Such as: Pimax, PSVR2, HP Reverb G2, etc. |
 
 ## Calibration Guide
 

@@ -43,13 +43,13 @@ https://github.com/user-attachments/assets/de458fa9-3029-4aca-95d1-5753ce6602a9
 
 Once it's calibrated, the headset is driven entirely by the tracker, so if you don't need the SLAM devices you can disable the headset's own tracking too. This also means the override works fine with your headset set to 3DoF mode or with its positional tracking disabled.
 
-## Disable HMD Alignment
+## Native Override Mode
 
-Disable HMD Alignment feeds the raw tracker data, with the corrected offset applied, directly to the headset. This makes the headset behave as a truly native lighthouse device. The trade-off is yaw misalignment: the tracker's projection is different from your headset's, which is also why local space tracking is required.
+Native Override feeds the raw tracker data, with the corrected offset applied, directly to the headset. This makes the headset behave as a truly native lighthouse device. The trade-off is yaw misalignment: the tracker's projection is different from your headset's, which is also why local space tracking is required.
 
 To set it up:
 
-1. Enable the **Disable HMD Alignment** option.
+1. Enable the **Native Override** option.
 2. Run the calibration.
 3. Stand up straight and rotate your body in a circle while recentering your **headset's** space (not SteamVR's) until you find the spot where the view lines up.
 4. Once aligned, you can optionally turn off the headset's own tracking entirely, and the pose never changes from that point on.

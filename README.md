@@ -83,6 +83,9 @@ No. SpaceOverride does not conflict with Space Calibrator, you can have both ins
 
 ### Why are Tundra Trackers unusable?
 
+> [!IMPORTANT]
+> Tundra Tracker support is W.I.P and the issues cited below are being worked on, in future release Tundras will be compatible without any major issues.
+
 The mounted tracker drives your *entire headset pose*, so the tracker's quality directly becomes your view's quality. Tundra Trackers are known for jittery tracking, and jitter that's merely annoying on a hip or foot becomes nauseating when it's applied to your head. Use a Vive Tracker 3.0 or an equivalently stable device.
 
 ### Can wireless latency affect the pose?

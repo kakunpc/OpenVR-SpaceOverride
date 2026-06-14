@@ -7,7 +7,7 @@ This puts the headset and all your other lighthouse devices on the same tracking
 ## Requirements
 
 - Lighthouse system (or other equivalent)
-- Rigid Tracker (i.e., Vive Tracker 3.0 or equivalent, **not** a Tundra Tracker, see warning above)
+- Rigid Tracker (i.e., Vive Tracker 3.0 or equivalent)
 - Headset with SLAM or other positional tracking system
 
 ## Compatibility
@@ -17,6 +17,8 @@ This puts the headset and all your other lighthouse devices on the same tracking
 | PICO Connect | ✅ Works | |
 | Virtual Desktop | ✅ Works | |
 | ALVR | ✅ Works | |
+| Meta Quest Link | ⚠️ Unconfirmed | Unconfirmed, let me know, email: nyabsi@sovellus.cc |
+| Air Link | ⚠️ Unconfirmed | Unconfirmed, let me know, email: nyabsi@sovellus.cc |
 | Steam Link | ⚠️ Sub-optimal | Steam Link appears to do additional reprojection / pose prediction on-device, and some functionality doesn't work because it uses stage tracking rather than local space tracking (which is needed for yaw correction). |
 | Display Port powered SLAM devices | ✅ Works | Such as: Pimax, PSVR2, HP Reverb G2, etc. |
 

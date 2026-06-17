@@ -93,6 +93,12 @@ Turn on "Disable Angular Velocity" in the Settings.
 
 Don't launch OVR Advanced settings and try again.
 
+### My controllers jump, then settle back
+
+Expected behavior, not a bug. 
+
+Your controllers use the headset's inside-out tracking, which drifts relative to your lighthouse space, the driver corrects that drift and shifts back into place.
+
 ## FAQ
 
 ### How is this different from TrackingOverride?

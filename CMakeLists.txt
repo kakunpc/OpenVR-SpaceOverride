@@ -13,7 +13,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# The Vulkan validation layer adds extra reporting that also surfaces validation
+# The Vulkan validation layer adds extra reporting that also surfaces validation    
 # issues originating from external sources (e.g. SteamVR). Defaults on.
 option(ENABLE_VULKAN_VALIDATION "Enable Vulkan validation layers" ON)
 

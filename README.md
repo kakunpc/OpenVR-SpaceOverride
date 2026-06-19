@@ -22,13 +22,10 @@ This puts the headset and all your other lighthouse devices on the same tracking
 | ALVR | ✅ Works | |
 | Meta Quest Link | ⚠️ Unconfirmed | Unconfirmed, let me know, email: nyabsi@sovellus.cc |
 | Air Link | ⚠️ Unconfirmed | Unconfirmed, let me know, email: nyabsi@sovellus.cc |
-| Steam Link | ⚠️ Sub-optimal | Steam Link appears to do additional reprojection / pose prediction on-device, and some functionality doesn't work because it uses stage tracking rather than local space tracking (which is needed for yaw correction). |
+| Steam Link | ✅ Works | |
 | Display Port powered SLAM devices | ✅ Works | Such as: Pimax, PSVR2, HP Reverb G2, etc. |
 
 ## Calibration Guide
-
-> [!WARNING]
-> If you're using Virtual Desktop, please ensure **Stage Tracking** is disabled in the settings, this is required for the software to function in the expected way.
 
 1. Mount a rigid tracker to your headset.
 2. Hit **Calibrate**. It goes through a few stages, and the on-screen text tells you what it wants at each one:

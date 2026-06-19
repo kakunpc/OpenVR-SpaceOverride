@@ -49,8 +49,8 @@ struct CalibrationContext
 	float predictionTime = 1.0f;
 
 	bool headFilterEnabled = true;
-	protocol::OneEuroParams headFilterParams = { 2.0, 0.5, 1.0 };
-	protocol::OneEuroParams driftFilterParams = { 1.0, 0.4, 0.85 };
+	protocol::OneEuroParams headFilterParams = { 3.0, 0.8, 1.0 };
+	protocol::OneEuroParams driftFilterParams = { 5.0, 1.3, 0.6 };
 
 	vr::VRNotificationId notificationId = 0;
 

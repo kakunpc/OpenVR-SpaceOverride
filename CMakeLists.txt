@@ -15,7 +15,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # The Vulkan validation layer adds extra reporting that also surfaces validation    
 # issues originating from external sources (e.g. SteamVR). Defaults on.
-option(ENABLE_VULKAN_VALIDATION "Enable Vulkan validation layers" ON)
+option(ENABLE_VULKAN_VALIDATION "Enable Vulkan validation layers" OFF)
 
 set(OpenVR_ROOT ${CMAKE_SOURCE_DIR}/3rdparty/OpenVR)
 

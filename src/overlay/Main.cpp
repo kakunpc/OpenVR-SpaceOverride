@@ -127,6 +127,9 @@ static auto ShowNotification(const char* text) -> vr::VRNotificationId
 
 int main(int argc, char** argv)
 {
+#ifdef _WIN32
+    ShowWindow(GetConsoleWindow(), SW_HIDE);
+#endif
     HandleCommandLine(argc, argv);
 
     try {
@@ -245,7 +248,7 @@ int main(int argc, char** argv)
                     auto activityLevel = vr::VRSystem()->GetTrackedDeviceActivityLevel(CalCtx.targetID);
                     if ((activityLevel == vr::k_EDeviceActivityLevel_UserInteraction || activityLevel == vr::k_EDeviceActivityLevel_UserInteraction_Timeout) && g_tracking_lost) {
                         std::thread([]() {
-                            std::this_thread::sleep_for(2500ms);
+                            std::this_thread::sleep_for(3000ms);
                             CalCtx.notificationId = ShowNotification("Tracking lost - Currently recalibrating, please follow the calibration instructions.\n\nLook left, Look center, Look right, Look center, Look up, Look center.");
                             StartCalibration();
                         }).detach();

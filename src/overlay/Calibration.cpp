@@ -285,7 +285,7 @@ Eigen::Vector3d CalibrateTranslation(const std::vector<Sample> &samples, const E
 	return transcm;
 }
 
-static const double AxisVarianceThreshold = 0.001;
+static const double AxisVarianceThreshold = 0.0005;
 
 static double SecondAxisVariance(const std::vector<Sample> &samples)
 {

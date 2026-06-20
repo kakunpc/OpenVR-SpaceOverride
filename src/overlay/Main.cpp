@@ -54,6 +54,7 @@ static float g_hmd_refresh_rate = 90.0f;
 static bool g_ticking = true;
 static bool g_dashboard_was_visible = false;
 static bool g_tracking_lost = false;
+static uint64_t g_tracking_lost_time = 0;
 
 #define APP_KEY     "Nyabsi.SpaceOverride"
 #define APP_NAME    "Space Override"
@@ -249,11 +250,14 @@ int main(int argc, char** argv)
                 {
                     auto activityLevel = vr::VRSystem()->GetTrackedDeviceActivityLevel(CalCtx.targetID);
                     if ((activityLevel == vr::k_EDeviceActivityLevel_UserInteraction || activityLevel == vr::k_EDeviceActivityLevel_UserInteraction_Timeout) && g_tracking_lost) {
-                        std::thread([]() {
-                            std::this_thread::sleep_for(3000ms);
-                            CalCtx.notificationId = ShowNotification("Tracking lost - Currently recalibrating, please follow the calibration instructions.\n\nLook left, Look center, Look right, Look center, Look up, Look center.");
-                            StartCalibration();
-                        }).detach();
+                        if (SDL_GetTicks() - g_tracking_lost_time >= (30 * 1000)) {
+                            CalCtx.Clear();
+                            std::thread([]() {
+                                std::this_thread::sleep_for(3000ms);
+                                CalCtx.notificationId = ShowNotification("Tracking lost - Currently recalibrating, please follow the calibration instructions.\n\nLook left, Look center, Look right, Look center, Look up, Look center.");
+                                StartCalibration();
+                            }).detach();
+                        }
                         g_tracking_lost = false;
                     }
                     break;
@@ -262,8 +266,8 @@ int main(int argc, char** argv)
                 {
                     auto activityLevel = vr::VRSystem()->GetTrackedDeviceActivityLevel(CalCtx.targetID);
                     if (activityLevel == vr::k_EDeviceActivityLevel_Idle && CalCtx.enabled && !g_tracking_lost) {
-                        CalCtx.Clear();
                         g_tracking_lost = true;
+                        g_tracking_lost_time = SDL_GetTicks();
                     }
                     break;
                 }

@@ -61,7 +61,7 @@ To set it up:
 
 Re-run the calibration with a **slower calibration speed**. A rushed calibration is the most common cause of a bad offset, so take your time, move smoothly, and let it finish.
 
-### My view has shifted after leaving the headset unattended for a period of time
+### My trackers are gone / flew away after leaving headset unattended
 
 You should see an notification show up, follow the instructions to restore tracking.
 

@@ -10,6 +10,8 @@
 #include "VulkanRenderer.h"
 #include "VrOverlay.h"
 
+class UserInterface;
+
 class ImGuiWindow
 {
 public:
@@ -36,4 +38,5 @@ private:
     int height_;
     bool window_shown_;
     bool window_minimized_;
+    UserInterface m_userInterface_;
 };

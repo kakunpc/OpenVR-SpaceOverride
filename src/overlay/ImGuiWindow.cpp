@@ -220,6 +220,8 @@ auto ImGuiWindow::Initialize(VulkanRenderer*& renderer, VrOverlay*& overlay, con
     ImGui_ImplOpenVR_Init(&openvr_init_info);
 
     renderer->SetupRenderTarget(width, height, render_format);
+
+    m_userInterface_ = UserInterface();
 }
 
 auto ImGuiWindow::Show() -> void
@@ -252,7 +254,7 @@ auto ImGuiWindow::Draw(bool dashboardVisible) -> void
 
     ImGui::NewFrame();
 
-    BuildMainWindow(dashboardVisible);
+    m_userInterface_.Render(dashboardVisible);
 
     ImGui::Render();
 }

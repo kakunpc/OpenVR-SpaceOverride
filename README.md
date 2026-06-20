@@ -63,7 +63,7 @@ Re-run the calibration with a **slower calibration speed**. A rushed calibration
 
 ### My view has shifted after leaving the headset unattended for a period of time
 
-You should see an notiication show up, follow the instructions to restore tracking.
+You should see an notification show up, follow the instructions to restore tracking.
 
 ### My view is completely messed up!
 
@@ -102,7 +102,7 @@ Yes. The headset's display pipeline and the lighthouse tracker run on different 
 
 ### Does it drift?
 
-No, all drift is induced by poor lighthouse perormance, please ensure your lighthouse setup does not have interference.
+No, all drift is induced by poor lighthouse performance, please ensure your lighthouse setup does not have interference.
 
 You can use guide such as: [Link](https://www.notion.so/yeove/SteamVR-Hardware-Troubleshooting-Megathread-Setup-Guide-16fc956d336a8037b738d1b0b1ded2f0#1c0c956d336a8035b76dd1b87527d180)
 

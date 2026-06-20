@@ -319,31 +319,17 @@ bool ServerTrackedDeviceProvider::HandleDevicePoseUpdated(uint32_t openVRID, vr:
 				vr::HmdVector3d_t angVel = quaternionRotateVector(hmdTracker.calibrationRotation, trackerAngVel);
 
 				if (hmdTracker.native) {
-					vr::HmdVector3d_t tangential = {
-						trackerAngVel[1] * offset.v[2] - trackerAngVel[2] * offset.v[1],
-						trackerAngVel[2] * offset.v[0] - trackerAngVel[0] * offset.v[2],
-						trackerAngVel[0] * offset.v[1] - trackerAngVel[1] * offset.v[0]
-					};
-
 					for (int i = 0; i < 3; i++)
 					{
 						pose.vecVelocity[i] = trackerVel[i];
-						if (hmdTracker.enableAngularVelocity)
-							pose.vecAngularVelocity[i] = trackerAngVel[i] + tangential.v[i];
+						pose.vecAngularVelocity[i] = hmdTracker.enableAngularVelocity ? trackerAngVel[i] : 0.0;
 					}
 				}
 				else {
-					vr::HmdVector3d_t tangential = {
-						angVel.v[1] * offset.v[2] - angVel.v[2] * offset.v[1],
-						angVel.v[2] * offset.v[0] - angVel.v[0] * offset.v[2],
-						angVel.v[0] * offset.v[1] - angVel.v[1] * offset.v[0]
-					};
-
 					for (int i = 0; i < 3; i++)
 					{
 						pose.vecVelocity[i] = vel.v[i];
-						if (hmdTracker.enableAngularVelocity)
-							pose.vecAngularVelocity[i] = angVel.v[i] + tangential.v[i];
+						pose.vecAngularVelocity[i] = hmdTracker.enableAngularVelocity ? angVel.v[i] : 0.0;
 					}
 				}
 
@@ -355,7 +341,21 @@ bool ServerTrackedDeviceProvider::HandleDevicePoseUpdated(uint32_t openVRID, vr:
 
 				if (rawValid)
 				{
-					UpdateDrift(pose.qRotation, pose.vecPosition, rawRotation, rawPosition);
+					double linSpeed = sqrt(
+						trackerVel[0] * trackerVel[0] +
+						trackerVel[1] * trackerVel[1] +
+						trackerVel[2] * trackerVel[2]);
+
+					double angSpeed = sqrt(
+						trackerAngVel[0] * trackerAngVel[0] +
+						trackerAngVel[1] * trackerAngVel[1] +
+						trackerAngVel[2] * trackerAngVel[2]);
+
+					const double maxLinSpeed = 2.75;
+					const double maxAngSpeed = 3.5;
+
+					if (!drift.valid || (linSpeed < maxLinSpeed && angSpeed < maxAngSpeed))
+						UpdateDrift(pose.qRotation, pose.vecPosition, rawRotation, rawPosition);
 				}
 			}
 			else {

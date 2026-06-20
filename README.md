@@ -112,4 +112,4 @@ This project uses/used substancial parts of [OpenVR Space Calibrator](https://gi
 
 ## License
 
-Commits up to and including `1cc0583` are MIT (see [`LICENSE.MIT`](LICENSE.MIT)). Everything after is GPLv3 (see [`LICENSE`](LICENSE)).
+Commits up to and including `1cc0583` are MIT (see [`LICENSE.MIT`](LICENSE.MIT)). Everything after is AGPLv3 (see [`LICENSE`](LICENSE)).

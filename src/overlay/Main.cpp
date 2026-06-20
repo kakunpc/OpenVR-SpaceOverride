@@ -163,9 +163,8 @@ int main(int argc, char** argv)
     try {
         g_overlay->Create(vr::VROverlayType_Dashboard, APP_KEY, APP_NAME);
 
-        std::string thumbnail_path = {};
-        thumbnail_path += SDL_GetCurrentDirectory();
-        thumbnail_path += "icon.png";
+        std::string thumbnail_path = SDL_GetBasePath();
+        thumbnail_path += "\\icon.png";
         g_overlay->SetThumbnail(thumbnail_path);
 
         g_overlay->SetInputMethod(vr::VROverlayInputMethod_Mouse);
@@ -177,12 +176,20 @@ int main(int argc, char** argv)
         CreateNotificationOverlay();
     }
     catch (std::exception& ex) {
+#ifdef _WIN32
+        MessageBoxA(NULL, ex.what(), APP_NAME, MB_OK);
+#else
         printf("%s\n\n", ex.what());
+#endif
         return EXIT_FAILURE;
     }
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
-        printf("SDL_Init\n%s\n\n", SDL_GetError());
+#ifdef _WIN32
+        MessageBoxA(NULL, SDL_GetError(), APP_NAME, MB_OK);
+#else
+        printf("%s\n\n", SDL_GetError());
+#endif
         return EXIT_FAILURE;
     }
 

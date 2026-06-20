@@ -53,7 +53,7 @@ public:
             vr::EVROverlayError result = vr::VROverlay()->SetOverlayFromFile(thumbnail_handle, path.data());
             if (result > vr::VROverlayError_None)
                 throw std::runtime_error(
-                    std::format("Failed to set overlay input method \"{}\": {}", path, static_cast<int>(result))
+                    std::format("Failed to set overlay thumbnail \"{}\": {}", path, static_cast<int>(result))
                 );
             return;
         }

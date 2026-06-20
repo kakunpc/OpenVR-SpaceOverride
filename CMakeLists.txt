@@ -59,6 +59,12 @@ if (MSVC)
     target_compile_options(OpenVR-SpaceOverride PRIVATE /bigobj)
 endif()
 
+# Windows executable icon
+if (WIN32)
+    target_sources(OpenVR-SpaceOverride PRIVATE "resources/winicon.rc")
+endif()
+
+
 target_link_libraries(OpenVR-SpaceOverride
     PRIVATE
         OpenVR::API

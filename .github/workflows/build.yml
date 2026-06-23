@@ -14,12 +14,8 @@ on:
           - x86-release
           - x86-debug
   push:
-    branches:
-      - main
-      - master
     tags:
       - "v*"
-  pull_request:
 
 jobs:
   windows-installer:

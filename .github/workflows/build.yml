@@ -3,6 +3,16 @@ name: Build
 on:
   workflow_dispatch:
     inputs:
+      build_ref:
+        description: Git ref, tag, or commit SHA to build
+        required: false
+        default: ""
+        type: string
+      release_tag:
+        description: Existing or new release tag to upload files to
+        required: false
+        default: ""
+        type: string
       preset:
         description: CMake preset to build
         required: true
@@ -24,12 +34,19 @@ jobs:
 
     env:
       BUILD_PRESET: ${{ github.event.inputs.preset || 'x64-release' }}
+      RELEASE_TAG: ${{ github.event.inputs.release_tag || github.ref_name }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.inputs.build_ref || github.ref }}
           submodules: recursive
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
 
       - name: Install NSIS
         shell: powershell
@@ -39,7 +56,22 @@ jobs:
 
       - name: Build
         shell: cmd
-        run: Build.cmd %BUILD_PRESET%
+        run: |
+          git submodule update --init --recursive
+          cmake --preset "%BUILD_PRESET%"
+          cmake --build --preset "%BUILD_PRESET%"
+
+          if not exist "bin" mkdir "bin"
+          if not exist "dev-resources\driver\bin\win64" mkdir "dev-resources\driver\bin\win64"
+
+          copy /Y "out\build\%BUILD_PRESET%\OpenVR-SpaceOverride.exe" "bin\OpenVR-SpaceOverride.exe"
+          copy /Y "3rdparty\OpenVR\bin\win64\openvr_api.dll" "bin\openvr_api.dll"
+          copy /Y "resources\manifest.vrmanifest" "bin\manifest.vrmanifest"
+          copy /Y "resources\LICENSE.txt" "bin\LICENSE.txt"
+          copy /Y "resources\LICENSE" "bin\LICENSE"
+          copy /Y "resources\LICENSES" "bin\LICENSES"
+          copy /Y "resources\icon.png" "bin\icon.png"
+          copy /Y "out\build\%BUILD_PRESET%\driver_spaceoverride.dll" "dev-resources\driver\bin\win64\driver_spaceoverride.dll"
 
       - name: Create installer
         shell: cmd
@@ -63,15 +95,16 @@ jobs:
           if-no-files-found: error
 
       - name: Create release archive
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.release_tag != ''
         shell: powershell
         run: |
           Compress-Archive -Path bin, dev-resources\driver -DestinationPath OpenVR-SpaceOverride-staged-${env:BUILD_PRESET}.zip -Force
 
       - name: Upload files to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || github.event.inputs.release_tag != ''
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ env.RELEASE_TAG }}
           files: |
             dev-resources/OpenVR-SpaceOverride_Installer.exe
             OpenVR-SpaceOverride-staged-${{ env.BUILD_PRESET }}.zip

@@ -15,7 +15,7 @@ on:
           - x86-debug
   push:
     tags:
-      - "v*"
+      - "*-v*"
 
 jobs:
   windows-installer:

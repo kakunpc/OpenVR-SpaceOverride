@@ -54,24 +54,48 @@ jobs:
           choco install nsis -y --no-progress
           "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
+      - name: Install Vulkan SDK
+        shell: powershell
+        run: |
+          choco install vulkan-sdk -y --no-progress
+          $sdk = Get-ChildItem C:\VulkanSDK -Directory | Sort-Object Name -Descending | Select-Object -First 1
+          if (-not $sdk) {
+            throw "Vulkan SDK was not found under C:\VulkanSDK"
+          }
+          "VULKAN_SDK=$($sdk.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "$($sdk.FullName)\Bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       - name: Build
         shell: cmd
         run: |
           git submodule update --init --recursive
+          if errorlevel 1 exit /b 1
+
           cmake --preset "%BUILD_PRESET%"
-          cmake --build --preset "%BUILD_PRESET%"
+          if errorlevel 1 exit /b 1
+
+          cmake --build "out\build\%BUILD_PRESET%"
+          if errorlevel 1 exit /b 1
 
           if not exist "bin" mkdir "bin"
           if not exist "dev-resources\driver\bin\win64" mkdir "dev-resources\driver\bin\win64"
 
           copy /Y "out\build\%BUILD_PRESET%\OpenVR-SpaceOverride.exe" "bin\OpenVR-SpaceOverride.exe"
+          if errorlevel 1 exit /b 1
           copy /Y "3rdparty\OpenVR\bin\win64\openvr_api.dll" "bin\openvr_api.dll"
+          if errorlevel 1 exit /b 1
           copy /Y "resources\manifest.vrmanifest" "bin\manifest.vrmanifest"
+          if errorlevel 1 exit /b 1
           copy /Y "resources\LICENSE.txt" "bin\LICENSE.txt"
+          if errorlevel 1 exit /b 1
           copy /Y "resources\LICENSE" "bin\LICENSE"
+          if errorlevel 1 exit /b 1
           copy /Y "resources\LICENSES" "bin\LICENSES"
+          if errorlevel 1 exit /b 1
           copy /Y "resources\icon.png" "bin\icon.png"
+          if errorlevel 1 exit /b 1
           copy /Y "out\build\%BUILD_PRESET%\driver_spaceoverride.dll" "dev-resources\driver\bin\win64\driver_spaceoverride.dll"
+          if errorlevel 1 exit /b 1
 
       - name: Create installer
         shell: cmd

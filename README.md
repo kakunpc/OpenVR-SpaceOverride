@@ -7,6 +7,9 @@ This puts the headset and all your other lighthouse devices on the same tracking
 > [!NOTE]
 > If you find bugs or issues, let me know over e-mail at `nyabsi@sovellus.cc` I will be responding to you when I have time. This software will receive updates on irregular basis but each update is guaranteed to improve the software in a way or another, thanks for using it even on it's current state.
 
+> [!TIP]
+> OpenVR-SpaceOverride **is not** OpenVR-SpaceCalibrator nor a *fork*, it uses a completely novel technique starting from v9. Older vesions had code used from space cal to workaround a technical limitation which has been resolved.
+
 ## Requirements
 
 - Lighthouse system (or other equivalent)
@@ -24,60 +27,25 @@ This puts the headset and all your other lighthouse devices on the same tracking
 | Air Link | ⚠️ Unconfirmed | Unconfirmed, let me know, email: nyabsi@sovellus.cc |
 | Steam Link | ✅ Works | |
 | Display Port powered SLAM devices | ✅ Works | Such as: Pimax, PSVR2, HP Reverb G2, etc. |
-
-## Calibration Guide
-
-1. Mount a rigid tracker to your headset.
-2. Hit **Calibrate**. It goes through a few stages, and the on-screen text tells you what it wants at each one:
-    - First it asks you to **move your head around** so it can spot which tracker is the one mounted to your head.
-    - Then it calibrates. *Look left, Look center, Look right, Look center, Look up, Look center.*
-3. That's it. The profile saves on its own and the override stays running in the background.
-
-> [!TIP]
-> **Patience is key.** If the result feels odd or misaligned after calibrating, switch to a **slower calibration speed** and re-try. Slower calibration gives the solver more data to work with and almost always produces a better result.
-
-Once it's calibrated, the headset is driven entirely by the tracker, so if you don't need the SLAM devices you can disable the headset's own tracking too. This also means the override works fine with your headset set to 3DoF mode or with its positional tracking disabled.
-
-## Disable calibrated Offset
-
-> [!CAUTION]
-> Please **DO NOT** use this, unless you understand how to do a manual TrackingOverride, this is meant for **advanced** users and not for your average person, you should not have *any* reason to use this, unless you *know* what you are doing.
-
-Native Override feeds the raw tracker data, with the corrected offset applied, directly to the headset. This makes the headset behave as a truly native lighthouse device. The trade-off is yaw misalignment: the tracker's projection is different from your headset's, which is also why local space tracking is required.
-
-To set it up:
-
-1. Enable the **Disable calibrated Offset** option.
-2. Run the calibration.
-3. Stand up straight and rotate your body in a circle while recentering your **headset's** space (not SteamVR's) until you find the spot where the view lines up.
-4. Once aligned, you can optionally turn off the headset's own tracking entirely, and the pose never changes from that point on.
-
-> [!NOTE]
-> After a headset restart, you may need to redo the yaw alignment.
+| VIVE Hub | ✅ Works | VIVE Focus Vision, via e-mail |
 
 ## Troubleshooting
-
-### My calibration feels odd / slightly off
-
-Re-run the calibration with a **slower calibration speed**. A rushed calibration is the most common cause of a bad offset, so take your time, move smoothly, and let it finish.
-
-### My trackers are gone / flew away after leaving headset unattended
-
-You should see an notification show up, follow the instructions to restore tracking.
-
-### My view is completely messed up!
-
-Your headset lost tracking it's tracking space, re-calibrate.
-
-### Being forced to look into one direction
-
-Don't launch OVR Advanced settings and try again.
 
 ### My controllers jump, then settle back
 
 Expected behavior, not a bug. 
 
 Your controllers use the headset's inside-out tracking, which drifts relative to your lighthouse space, the driver corrects that drift and shifts back into place.
+
+### My full body tracking seems weird in VRChat!
+
+This is expected, there is issues with the VRChat IK system that is not obvious from first glance.
+
+Usually Space Calibrator is not precise enough for these issues to show up, but with SpaceOverride you will see these issues.
+
+Each Lighthouse HMD suffers from the same issues and this is unfortunately the reality we live in.
+
+I am unable to solve these issues as they are not caused by SpaceOverride but I am working on potential workarounds.
 
 ## FAQ
 
@@ -88,13 +56,6 @@ This is **not** TrackingOverride. TrackingOverride simply substitutes one device
 ### Does this conflict with OpenVR Space Calibrator?
 
 No. SpaceOverride does not conflict with Space Calibrator, you can have both installed. They solve the alignment problem differently, but having Space Calibrator present won't break the override.
-
-### Why are Tundra Trackers unusable?
-
-> [!IMPORTANT]
-> Tundra Tracker support is W.I.P and the issues cited below are being worked on, in future release Tundras will be compatible without any major issues.
-
-The mounted tracker drives your *entire headset pose*, so the tracker's quality directly becomes your view's quality. Tundra Trackers are known for jittery tracking, and jitter that's merely annoying on a hip or foot becomes nauseating when it's applied to your head. Use a Vive Tracker 3.0 or an equivalently stable device.
 
 ### Can wireless latency affect the pose?
 
@@ -108,7 +69,7 @@ You can use guide such as: [Link](https://www.notion.so/yeove/SteamVR-Hardware-T
 
 ## Acknowledgements
 
-This project uses/used substancial parts of [OpenVR Space Calibrator](https://github.com/pushrax/OpenVR-SpaceCalibrator). Huge thanks to [pushrax](https://github.com/pushrax) for their work, which this project builds on.
+This project uses/used substancial parts of [OpenVR Space Calibrator](https://github.com/pushrax/OpenVR-SpaceCalibrator). Huge thanks to [pushrax](https://github.com/pushrax) for their work, which this project used to build.
 
 ## License
 
